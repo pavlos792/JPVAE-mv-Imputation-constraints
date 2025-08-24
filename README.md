@@ -8,4 +8,7 @@ Our work extends the [JPVAE](https://github.com/eso28599/JPVAE/blob/master/READM
 - How does imputing a missing view from an unseen input affect classification accuracy on the test set compared to classification with complete views? What is the minimum sample size required before performance begins to deteriorate?  
 - How does JPVAE generalize when applied to a different dataset, such as Fashion-MNIST?
 
-The experiments are designed to highlight how constraints and data availability (100%, 50%, 5%, 1%) influence the ability of JPVAE to recover missing information and support downstream tasks.  
+The experiments are designed to highlight how constraints and data availability (100%, 50%, 5%, 1%) influence the ability of JPVAE to recover missing information and support downstream tasks. 
+
+> 📝 **Note:** All experiments and analyses in this repository were conducted using **Google Colab**, leveraging its GPU/TPU resources for training and evaluation.  
+
