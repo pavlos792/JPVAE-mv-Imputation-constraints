@@ -3,7 +3,7 @@
 This project investigates the research question:  
 **“How does training with different types and rates of missingness affect the robustness of JPVAE in multi-view learning, and to what extent can this improve imputation quality and affect accuracy for downstream tasks such as classification?”**
 
-Our work extends the [JPVAE implementation](https://github.com/eso28599/JPVAE/blob/master/README.md)) by analyzing robustness under varying missingness scenarios. Specifically, we compare different latent space constraints — orthogonality, eigenvalue regularization, and $C=0$ baseline — to evaluate their impact on:  
+Our work extends the [JPVAE implementation](https://github.com/eso28599/JPVAE/blob/master/README.md) by analyzing robustness under varying missingness scenarios. Specifically, we compare different latent space constraints — orthogonality, eigenvalue regularization, and $C=0$ baseline — to evaluate their impact on:  
 - **Imputation quality** of missing views,  
 - **Stability of latent representations**, and  
 - **Classification accuracy** on MNIST and Fashion-MNIST.  
