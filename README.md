@@ -1,4 +1,4 @@
-JPVAE-mv-Imputation-constraints
+# JPVAE-mv-Imputation-constraints
   
 This project investigates the research question:  
 **“How does training with different types and rates of missingness affect the robustness of JPVAE in multi-view learning, and to what extent can this improve imputation quality and affect accuracy for downstream tasks such as classification?”**
