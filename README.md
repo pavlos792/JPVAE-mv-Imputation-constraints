@@ -12,3 +12,36 @@ The experiments are designed to highlight how constraints and data availability 
 
 > 📝 **Note:** All experiments and analyses in this repository were conducted using **Google Colab**, leveraging its GPU/TPU resources for training and evaluation.  
 
+## How to Run the Experiments
+
+There are **three notebooks** provided for each dataset, corresponding to different latent space constraints:
+
+- `JPVAE_100p_MNIST_CEval_zerorot_CNN.ipynb` — *Eigenvalue regularization constraint*  
+- `JPVAE_100p_MNIST_Corth_zerorot_CNN.ipynb` — *Orthogonality constraint*  
+- `JPVAE_100p_MNIST_Czero_zerorot_CNN.ipynb` — *No latent correlation (baseline)*  
+
+### Step 1: Set training percentage
+In the **second cell** of each notebook, define the training dataset percentage to use (e.g., `100`, `50`, `5`, or `1`).  
+
+### Step 2: Configure directories
+In the **first cell**, set the path to your Python scripts:  
+
+```python
+sys.path.append('/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/')
+
+to save your results and figures (for the 100% case)
+figures_base_dir_original = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
+results_base_dir = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
+
+### Step 3: Organize folders
+
+Inside each baseline folder (e.g., `Baseline_100p`), create three subfolders:
+
+- `C_zero_zerorot_CNN`  
+- `C_orth_zerorot_CNN`  
+- `C_eval_zerorot_CNN`  
+
+For each different percentage (e.g., `Baseline_50p`, `Baseline_5p`, `Baseline_1p`), create the same three subfolders and update the paths in the notebook accordingly.  
+
+Example folder structure similar to the results at the tree.  
+
