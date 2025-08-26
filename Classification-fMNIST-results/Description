@@ -1,0 +1,2 @@
+Code and results for the Fashion MNIST dataset, including experiments with 100%, 50%, 5%, and 1% of the training data.  
+Contains simulation scripts, trained models, and evaluation outputs for reconstruction, imputation, and classification under different latent space constraints.
