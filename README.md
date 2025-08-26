@@ -23,7 +23,24 @@ There are **three notebooks** provided for each dataset, corresponding to differ
 ### Step 1: Set training percentage
 In the **second cell** of each notebook, define the training dataset percentage to use (e.g., `100`, `50`, `5`, or `1`).  
 
-### Step 2: Configure directories
+### Step 2: Rotate the dataset
+
+In both `train_vae_withCorthog.py` and `train_vae_withCevals.py`, the `train_and_eval_split` function includes an option to rotate dataset images in order to introduce nonlinearity.  
+
+This is controlled by the list `rotation_angles_pattern` (search for it with **CTRL+F**). The list defines the rotation angles for every sequence of four consecutive images. For example, setting rotation_angles_pattern = [0, 45, 90, 135] :
+
+This pattern applies the following transformations:
+
+- First image → unchanged (0°)  
+- Second image → rotated by 45°  
+- Third image → rotated by 90°  
+- Fourth image → rotated by 135°  
+
+The sequence then repeats for the next four images and goes on.  
+
+⚠️ *Note:* All results provided in this repository were obtained **without any rotation applied** (default setting).  
+
+### Step 3: Configure directories
 In the **first cell**, set the path to your Python scripts:  
 
 sys.path.append('/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/')
@@ -32,7 +49,7 @@ to save your results and figures (for the 100% case)
 - figures_base_dir_original = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
 - results_base_dir = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
 
-### Step 3: Organize folders
+### Step 4: Organize folders
 
 Inside each baseline folder (e.g., `Baseline_100p`), create three subfolders:
 
@@ -64,7 +81,7 @@ Classification/
     └── C_eval_zerorot_CNN/
 ```
 
-### Step 4: Plotting
+### Step 5: Plotting
 
 In each subfolder, three CSV files will be generated:  
 
