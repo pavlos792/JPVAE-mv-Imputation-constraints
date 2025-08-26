@@ -29,8 +29,8 @@ In the **first cell**, set the path to your Python scripts:
 sys.path.append('/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/')
 
 to save your results and figures (for the 100% case)
-figures_base_dir_original = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
-results_base_dir = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
+- figures_base_dir_original = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
+- results_base_dir = '/content/drive/MyDrive/Colab_Notebooks/MNIST/Classification/Baseline_100p/'
 
 ### Step 3: Organize folders
 
