@@ -42,25 +42,27 @@ Inside each baseline folder (e.g., `Baseline_100p`), create three subfolders:
 
 For each different percentage (e.g., `Baseline_50p`, `Baseline_5p`, `Baseline_1p`), create the same three subfolders and update the paths in the notebook accordingly.  
 
-Example folder structure similar to the results at the tree.
+Example folder structure:
 
+```text
 Classification/
 ├── Baseline_100p/
-│ ├── C_zero_zerorot_CNN/
-│ ├── C_orth_zerorot_CNN/
-│ └── C_eval_zerorot_CNN/
+│   ├── C_zero_zerorot_CNN/
+│   ├── C_orth_zerorot_CNN/
+│   └── C_eval_zerorot_CNN/
 ├── Baseline_50p/
-│ ├── C_zero_zerorot_CNN/
-│ ├── C_orth_zerorot_CNN/
-│ └── C_eval_zerorot_CNN/
+│   ├── C_zero_zerorot_CNN/
+│   ├── C_orth_zerorot_CNN/
+│   └── C_eval_zerorot_CNN/
 ├── Baseline_5p/
-│ ├── C_zero_zerorot_CNN/
-│ ├── C_orth_zerorot_CNN/
-│ └── C_eval_zerorot_CNN/
+│   ├── C_zero_zerorot_CNN/
+│   ├── C_orth_zerorot_CNN/
+│   └── C_eval_zerorot_CNN/
 └── Baseline_1p/
-├── C_zero_zerorot_CNN/
-├── C_orth_zerorot_CNN/
-└── C_eval_zerorot_CNN/
+    ├── C_zero_zerorot_CNN/
+    ├── C_orth_zerorot_CNN/
+    └── C_eval_zerorot_CNN/
+
 
 ### Step 4: Plotting
 
