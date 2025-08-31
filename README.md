@@ -92,9 +92,12 @@ In each subfolder, three CSV files will be generated:
 To visualize results, collate the outputs from all percentages (100%, 50%, 5%, 1%) into a single CSV file for each method (orthogonal, eval, zero). The format should follow the examples provided in the `results/` folder.  
 Then, run the notebook:  
 
-- `JPVAE_100p_missingview_plotting_comparison_FMNIST_allpcs.ipynb`  
+- `JPVAE_100p_missingview_plotting_comparison_FMNIST_allpcs.ipynb`
 
 Before running, update the path variables in the first cell:  
 
 - **results_base_dir** → location of the combined CSV files  
-- **figures_base_dir_original** → directory where you want the figures to be saved  
+- **figures_base_dir_original** → directory where you want the figures to be saved
+
+--------------------------------------------------------------------------------------
+⚠️ *Final Note:* During this project, an attempt was also made to implement a clustering task on the MNISt dataset as an alternative to classification. However, the initial results were not satisfactory and there is still work that needs to be done. For completeness, the corresponding code has been made available as "classifier_AE_Clustering_pipeline.py"
