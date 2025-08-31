@@ -1,11 +1,13 @@
-# classifier_AE_Clustering_pipeline_fixed5.py
+
+# classifier_AE_Clustering_pipeline_with_plots.py
 """
-Clustering pipeline with a Flax/JAX autoencoder and KMeans.
+Clustering pipeline with a Flax/JAX autoencoder and KMeans, plus plotting.
 - Fixes ConcretizationTypeError by using static image_side.
-- Avoids passing Python objects into jitted fns by CLOSING OVER `model`.
+- Avoids passing Python objects into jitted fns by closing over `model`.
+- Adds plot_cluster_map(...) and optional plotting from clustering_results_combine(...).
 """
 
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -14,7 +16,9 @@ from flax import linen as nn
 import optax
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 # -----------------------------
 # Model definition
@@ -34,12 +38,14 @@ class Encoder(nn.Module):
 
         x = nn.Conv(32, (3, 3), strides=(2, 2), padding="SAME", name="enc_conv1")(x)  # 28->14
         x = nn.relu(x)
-        x = nn.BatchNorm(use_running_average=not train, name="enc_bn1")(x)
+        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2))
+        #x = nn.BatchNorm(use_running_average=not train, name="enc_bn1")(x)
         x = nn.Dropout(rate=self.dropout_rate, deterministic=not train)(x)
 
         x = nn.Conv(64, (3, 3), strides=(2, 2), padding="SAME", name="enc_conv2")(x)  # 14->7
         x = nn.relu(x)
-        x = nn.BatchNorm(use_running_average=not train, name="enc_bn2")(x)
+        x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2))
+        #x = nn.BatchNorm(use_running_average=not train, name="enc_bn2")(x)
         x = nn.Dropout(rate=self.dropout_rate, deterministic=not train)(x)
 
         x = x.reshape((x.shape[0], -1))  # (B, 7*7*64)
@@ -63,7 +69,7 @@ class Decoder(nn.Module):
         x = nn.Dropout(rate=self.dropout_rate, deterministic=not train)(x)
 
         x = nn.ConvTranspose(1, (3, 3), strides=(2, 2), padding="SAME", name="dec_deconv2")(x)   # 14->28
-        x = nn.sigmoid(x)  # recon in [0,1]
+        #x = nn.sigmoid(x)  # values are already imported between [0,1] recon in [0,1]
         x = x.reshape((x.shape[0], self.image_side * self.image_side))  # (B, HW)
         return x
 
@@ -100,21 +106,17 @@ def init_model(rng, input_shape: Tuple[int, ...], latent_dim: int, image_side: i
     return model, params, batch_stats
 
 
-def batch_generator(data: jax.Array, labels: Optional[jax.Array], batch_size: int, key: jax.Array):
-    """Yield shuffled mini-batches with a JAX key."""
-    n = data.shape[0]
-    idx_all = jnp.arange(n)
+def batch_generator(data,data_labels, batch_size,key):
+    num_samples = data.shape[0]
+    indices = jnp.arange(num_samples)
+    
     while True:
-        key, sub = random.split(key)
-        perm = random.permutation(sub, idx_all)
-        for i in range(0, n, batch_size):
-            idx = perm[i:i + batch_size]
-            xb = data[idx]
-            if labels is not None:
-                yb = labels[idx]
-                yield xb, yb
-            else:
-                yield xb, None
+        # Shuffle indices for each epoch
+        shuffled_indices = random.permutation(random.PRNGKey(1000), indices) 
+        
+        for i in range(0, num_samples, batch_size):
+            batch_indices = shuffled_indices[i:i + batch_size]
+            yield data[batch_indices],data_labels[batch_indices]
 
 
 def train_autoencoder(
@@ -215,6 +217,38 @@ def _cluster_accuracy(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) ->
     matched = cm[r_ind, c_ind].sum()
     return float(matched) / float(len(y_true))
 
+def _confusion_true_vs_cluster(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> np.ndarray:
+    """Build (true_label x cluster_label) count matrix."""
+    cm = np.zeros((n_classes, n_classes), dtype=np.int64)
+    for t, p in zip(y_true.astype(int), y_pred.astype(int)):
+        if 0 <= t < n_classes and 0 <= p < n_classes:
+            cm[t, p] += 1
+    return cm
+
+# -----------------------------
+# Plotting
+# -----------------------------
+
+def plot_cluster_map(y_true: np.ndarray,
+                     y_pred: np.ndarray,
+                     n_classes: int,
+                     title: str,
+                     save_path: Optional[str] = None,
+                     show: bool = False):
+    """Plot a heatmap of True Label (rows) vs Cluster Label (cols)."""
+    cm = _confusion_true_vs_cluster(y_true, y_pred, n_classes)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="viridis")
+    plt.xlabel("Cluster Label")
+    plt.ylabel("True Label")
+    plt.title(title)
+    plt.tight_layout()
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=150)
+    if show:
+        plt.show()
+    plt.close()
 
 # -----------------------------
 # Main API: clustering_results_combine
@@ -225,28 +259,32 @@ def clustering_results_combine(train_ds1, train_ds2, train_labs,
                                processed_top_view_test, processed_bottom_view_test,
                                test_labs,
                                full_train1, full_train2, full_train_labs,
-                               params=None,               # unused, kept for signature parity
-                               num_epochs=10, batch_num=128, n_targets=10,
-                               step_size=1e-3, start_range=0, end_range=784,
-                               latent_dim=64, seed=0, dropout_rate=0.1) -> Dict[str, float]:
+                               num_epochs=30, batch_num=32, n_targets=10,
+                               step_size=1e-2, start_range=0, end_range=784,
+                               latent_dim=128, seed=0, dropout_rate=0.1,
+                               plot_maps = True,
+                               plot_dir = None) -> Dict[str, float]:
     """
-    Train the autoencoder on full original training images, then run KMeans on embeddings and
-    report Hungarian-matched clustering accuracies for each requested test set combination.
+    Train the autoencoder on full original training images, run KMeans on embeddings,
+    report Hungarian-matched clustering accuracies, and optionally plot/sav e cluster maps.
     Assumes inputs are in [0,1]; NO standardization is applied.
     """
     # 1) Build full images
-    train_full = _concat_halves(train_ds1, train_ds2)[:, start_range:end_range]
-    test_full_original = _concat_halves(original_top_view_test, original_bottom_view_test)[:, start_range:end_range]
-    test_orig_top_gen_bottom = _concat_halves(original_top_view_test, processed_bottom_view_test)[:, start_range:end_range]
-    test_gen_top_orig_bottom = _concat_halves(processed_top_view_test, original_bottom_view_test)[:, start_range:end_range]
-    test_full_processed = _concat_halves(processed_top_view_test, processed_bottom_view_test)[:, start_range:end_range]
+    train_full = jnp.concatenate([train_ds1, train_ds2], axis=1)
+    test_full_original = jnp.concatenate([original_top_view_test, original_bottom_view_test], axis=1)
 
-    # Ensure float32
-    train_full = jnp.asarray(train_full, dtype=jnp.float32)
-    test_full_original = jnp.asarray(test_full_original, dtype=jnp.float32)
-    test_orig_top_gen_bottom = jnp.asarray(test_orig_top_gen_bottom, dtype=jnp.float32)
-    test_gen_top_orig_bottom = jnp.asarray(test_gen_top_orig_bottom, dtype=jnp.float32)
-    test_full_processed = jnp.asarray(test_full_processed, dtype=jnp.float32)
+    # 1. Test set: Original Top View + Generated Bottom View
+    # This combines the original top half with the VAE-generated bottom half.
+    test_orig_top_gen_bottom = jnp.concatenate([original_top_view_test, processed_bottom_view_test], axis=1)
+
+    # 2. Test set: Generated Top View + Original Bottom View
+    # This combines the VAE-generated top half with the original bottom half.
+    test_gen_top_orig_bottom = jnp.concatenate([processed_top_view_test, original_bottom_view_test], axis=1)
+
+    # 3. Test set: Processed Top View + Processed Bottom View
+    # This is the primary set you're interested in: the full digit formed by the
+    # spatially correct processed (original or generated) halves.
+    test_full_processed = jnp.concatenate([processed_top_view_test, processed_bottom_view_test], axis=1)
 
     # 2) Derive static image_side from feature length (must be a perfect square, e.g., 784 -> 28)
     feat_dim = int(train_full.shape[1])
@@ -301,45 +339,24 @@ def clustering_results_combine(train_ds1, train_ds2, train_labs,
     print("Clustering accuracies (Hungarian matched):")
     for k, v in metrics.items():
         print(f"  {k}: {v:.4f}")
+
+    # 7) Optional plots
+    if plot_maps:
+        os.makedirs(plot_dir, exist_ok=True)
+        plot_cluster_map(train_labels, train_pred, int(n_targets), 
+                         title="train_full_original - True vs Cluster", 
+                         save_path=os.path.join(plot_dir, "train_full_original.png"), show=False)
+        plot_cluster_map(test_labels, pred_full, int(n_targets), 
+                         title="test_full_original - True vs Cluster", 
+                         save_path=os.path.join(plot_dir, "test_full_original.png"), show=False)
+        plot_cluster_map(test_labels, pred_ot_gb, int(n_targets), 
+                         title="test_orig_top_gen_bottom - True vs Cluster", 
+                         save_path=os.path.join(plot_dir, "test_orig_top_gen_bottom.png"), show=False)
+        plot_cluster_map(test_labels, pred_gt_ob, int(n_targets), 
+                         title="test_gen_top_orig_bottom - True vs Cluster", 
+                         save_path=os.path.join(plot_dir, "test_gen_top_orig_bottom.png"), show=False)
+        plot_cluster_map(test_labels, pred_proc, int(n_targets), 
+                         title="test_full_processed - True vs Cluster", 
+                         save_path=os.path.join(plot_dir, "test_full_processed.png"), show=False)
+
     return metrics
-
-
-# -----------------------------
-# Example / sanity check (optional)
-# -----------------------------
-
-# if __name__ == "__main__":
-    # # Dummy shapes to verify the pipeline runs; replace with your actual data.
-    # key = random.PRNGKey(0)
-    # Ntr, Nte = 512, 128
-    # Hsplit = 392  # half of 28*28 = 784
-
-    # # Fake halves in [0,1]
-    # train_ds1 = random.uniform(key, (Ntr, Hsplit))
-    # key, _ = random.split(key)
-    # train_ds2 = random.uniform(key, (Ntr, Hsplit))
-    # train_labs = np.random.randint(0, 10, size=(Ntr,))
-
-    # original_top_view_test = random.uniform(key, (Nte, Hsplit))
-    # key, _ = random.split(key)
-    # original_bottom_view_test = random.uniform(key, (Nte, Hsplit))
-    # processed_top_view_test = random.uniform(key, (Nte, Hsplit))
-    # key, _ = random.split(key)
-    # processed_bottom_view_test = random.uniform(key, (Nte, Hsplit))
-    # test_labs = np.random.randint(0, 10, size=(Nte,))
-
-    # # Unused in this clustering pipeline, but kept for signature parity
-    # full_train1, full_train2, full_train_labs = train_ds1, train_ds2, train_labs
-
-    # metrics = clustering_results_combine(
-        # train_ds1, train_ds2, train_labs,
-        # original_top_view_test, original_bottom_view_test,
-        # processed_top_view_test, processed_bottom_view_test,
-        # test_labs,
-        # full_train1, full_train2, full_train_labs,
-        # params=None,
-        # num_epochs=2, batch_num=128, n_targets=10,
-        # step_size=1e-3, start_range=0, end_range=784,
-        # latent_dim=32, seed=0, dropout_rate=0.1
-    # )
-    # print(metrics)
